@@ -1,1 +1,3 @@
 https://anthropicpartnerbasecamp.bts.com/
+$env:PYTHONUTF8="1"
+python pod_sync.py --take-canon 

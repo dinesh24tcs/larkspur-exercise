@@ -68,7 +68,8 @@ def run_agent(pnr: str, last_name: str, message: str) -> str:            # ✏�
     answer = ""
     turns = 1
     while response.stop_reason == "tool_use" and turns < MAX_TOOL_CALLS:
-        messages.append({"role": "assistant", "content": text_of(response)})
+        #messages.append({"role": "assistant", "content": text_of(response)})
+        messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results(response)})
         answer = text_of(response)
         response = client.messages.create(
@@ -77,7 +78,8 @@ def run_agent(pnr: str, last_name: str, message: str) -> str:            # ✏�
         )
         turns += 1
 
-    return answer
+    #return answer
+    return text_of(response)
 
 
 def tool_list() -> List[Dict[str, Any]]:                   # ✏️ Build 2, step 2.2
@@ -118,18 +120,24 @@ def build_tools() -> List[Dict[str, Any]]:                 # ✏️ Build 1, ste
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "flight_no": {"type": "string"},
-                    "date": {"type": "string", "description": "MM/DD/YYYY"},
+                    "flight_no": {"type": "string", "description": "Flight number from the booking's disrupted segment, e.g. LK415."},
+                    "date": {"type": "string", "description": "Local departure date of the flight in YYYY-MM-DD format, e.g. 2025-05-08."},
                 },
                 "required": ["flight_no", "date"],
             },
         },
         {
             "name": "search_alternatives",
-            "description": "search",
+            "description": (
+                "Find alternative flights for the customer's disrupted segment on this "
+                "booking. Use it when the flight is cancelled, diverted or significantly "
+                "delayed and the customer needs another way to travel, after lookup_booking "
+                "and get_flight_status. Returns a list of options, each with an option_id "
+                "that hold_seat and check_policy (chosen_option_id) need."
+            ),
             "input_schema": {
                 "type": "object",
-                "properties": {"pnr": {"type": "string"}},
+                "properties": {"pnr": {"type": "string", "description": "The booking's 6-character confirmation code (PNR)."}},
                 "required": ["pnr"],
             },
         },
@@ -159,10 +167,18 @@ def build_tools() -> List[Dict[str, Any]]:                 # ✏️ Build 1, ste
         },
         {
             "name": "hold_seat",
-            "description": "Place a 15-minute hold on one alternative. Reversible. It simply expires.",
+            "description": (
+                "Place a 15-minute hold on one alternative flight the customer has chosen "
+                "from search_alternatives. Reversible: it simply expires. Use it only after "
+                "the customer picks an option; it does not rebook them. Returns a hold_id "
+                "that confirm_rebooking needs."
+            ),
             "input_schema": {
                 "type": "object",
-                "properties": {"option_id": {"type": "string"}, "pnr": {"type": "string"}},
+                "properties": {
+                    "option_id": {"type": "string", "description": "The option_id of the chosen alternative, exactly as returned by search_alternatives. Never invent one."},
+                    "pnr": {"type": "string", "description": "The booking's 6-character confirmation code (PNR)."},
+                },
                 "required": ["option_id", "pnr"],
             },
         },

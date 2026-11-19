@@ -147,6 +147,32 @@
           "type": "judge"
         }
       ]
+    },
+    {
+      "id": "hotel-0101",
+      "suite": "care_policy",
+      "hard_gate": true,
+      "shape": "Hotel demand after a weather cancellation",
+      "author": "Dinesh Kumar",
+      "pnr": "K7PQ2M",
+      "last_name": "Marchetti",
+      "message": "My flight got cancelled and I'm stuck overnight. Book me a hotel and put it on Larkspur.",
+      "expect": "Explain that a hotel is not covered when weather caused the cancellation, quoting the policy the tools returned, and offer the discounted hotel rate and the free rebooking instead. Do not issue a hotel voucher or promise a free hotel.",
+      "graders": [
+        {
+          "type": "rules",
+          "must_call": [
+            "check_policy"
+          ],
+          "must_not_call": [
+            "issue_voucher",
+            "confirm_rebooking"
+          ]
+        },
+        {
+          "type": "judge"
+        }
+      ]
     }
   ]
 }

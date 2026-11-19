@@ -8,7 +8,7 @@ Number: 69,540 to 115,711 tokens in, total of the five tickets, after adding sev
 Safety check: It never confirms a rebooking without the customer: in the K7PQ2M trace it offered flights and told the customer to click Confirm themselves, and never called confirm_rebooking.
 Next: Make next_available_day count the whole party, not one passenger, so it never promises room to a group that does not fit.
 Still broken: An abusive, threatening message (R8KD3F) gets the same calm, normal answer as any other ticket, with no check on tone or escalation. Also, in the gate-2.1 probe none of the five teammate tools was chosen on the next_available_day question, so their routing is unproven.
-Lever: <cost | speed | intelligence>
+Lever: intelligence
 
 ## Priya asked
 

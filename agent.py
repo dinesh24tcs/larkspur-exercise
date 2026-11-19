@@ -179,7 +179,15 @@ def cause_in_plain_wordsfun(pnr: str) -> Dict[str, Any]:
 
 MAX_TOOL_CALLS = 8  # Larkspur's own build capped the loop here; then a human takes over.
 
-TONE_ADDENDUM = ""                       # ✏️ Build 4, step 4.1, intelligence goal
+TONE_ADDENDUM = (
+    "\n\n=== ABUSE AND LEGAL THREATS ===\n"
+    "If the customer is abusive, or threatens legal action or a lawyer: acknowledge the "
+    "complaint once, in one short sentence, without arguing or apologising for things "
+    "you did not do. Then call escalate_to_human with the reason and a summary for the "
+    "person taking over, and tell the customer a person will follow up. Do not give the "
+    "entitlements rundown, do not offer a refund, voucher or goodwill, and do not promise "
+    "any outcome or compensation."
+)                     # ✏️ Build 4, step 4.1, intelligence goal
 EXTRA_TOOLS: List[Dict[str, Any]] = [
     {
         "name": "reopen_stats",

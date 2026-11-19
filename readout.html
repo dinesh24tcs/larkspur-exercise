@@ -38,7 +38,7 @@ th { background: #f4eee4; font-size: 12px; letter-spacing: .05em; text-transform
 .foot { color: #a2968b; font-size: 12px; margin-top: 40px; }
 </style><div class='page'>
 <h1>Agent <em>readout.</em></h1>
-<p class='sub'>Team Room 2 · 2026-11-19 06:28</p>
+<p class='sub'>Team Room 2 · 2026-11-19 07:13</p>
 <h2>Architecture: what the agent is</h2>
 <div class='strip'>
 <div class='stat'><b>17</b><span>tools offered</span></div>
@@ -46,7 +46,7 @@ th { background: #f4eee4; font-size: 12px; letter-spacing: .05em; text-transform
 <div class='stat'><b>2</b><span>served over MCP</span></div>
 <div class='stat'><b>8</b><span>loop ceiling</span></div>
 <div class='stat'><b>1478</b><span>system prompt chars</span></div>
-<div class='stat'><b>0</b><span>tone addendum chars</span></div>
+<div class='stat'><b>474</b><span>tone addendum chars</span></div>
 </div>
 <table><tr><th>tool</th><th>description</th><th>chars</th><th></th></tr>
 <tr><td><span class='pill'>lookup_booking</span></td><td>Retrieve a Larkspur reservation from Altura by confirmation code (PNR) and the passenger&#x27;s last name. Both are</td><td>283</td><td></td></tr>
@@ -70,56 +70,55 @@ th { background: #f4eee4; font-size: 12px; letter-spacing: .05em; text-transform
 <p class='sub'>2 of those 17 tools are served by support/mcp_server.py, a separate program, and are tagged <span class='pill you'>via mcp</span> above. Claude cannot tell: same name, same description, same tokens.</p>
 <p class='sub'>local dispatch: <span class='pill you'>care_entitlements</span>, <span class='pill you'>cause_in_plain_words</span>, <span class='pill you'>departures_in_window</span>, <span class='pill you'>ground_stop_status</span>, <span class='pill you'>reopen_stats</span>, <span class='pill you'>seats_left</span></p>
 <h2>All five ticket types: what it did across the set</h2>
-<p class='sub'>python3 run.py --all · 2026-11-19T04:47:56</p>
+<p class='sub'>python3 run.py --all · 2026-11-19T07:12:15</p>
 <div class='strip'>
 <div class='stat'><b>5/5</b><span>returned text</span></div>
 <div class='stat'><b>20</b><span>API turns, total</span></div>
 <div class='stat'><b>17</b><span>tool calls, total</span></div>
-<div class='stat'><b>115,711</b><span>tokens in, total</span></div>
-<div class='stat'><b>4,362</b><span>tokens out, total</span></div>
+<div class='stat'><b>15,201</b><span>tokens in, total</span></div>
+<div class='stat'><b>4,145</b><span>tokens out, total</span></div>
 </div>
 <table><tr><th>pnr</th><th>ticket type</th><th>turns</th><th>tools</th><th>in</th><th>out</th><th>stop_reason</th></tr>
-<tr><td><span class='pill'>K7PQ2M</span></td><td>Clean cancellation</td><td>4</td><td>4</td><td>24,046</td><td>967</td><td>end_turn</td></tr>
-<tr><td><span class='pill'>M3XR8T</span></td><td>Delay under threshold</td><td>4</td><td>3</td><td>22,843</td><td>712</td><td>end_turn</td></tr>
-<tr><td><span class='pill'>T9WN4C</span></td><td>Ambiguous missed connection</td><td>4</td><td>4</td><td>23,053</td><td>872</td><td>end_turn</td></tr>
-<tr><td><span class='pill'>G2HL9V</span></td><td>Out-of-scope group</td><td>4</td><td>3</td><td>22,931</td><td>947</td><td>end_turn</td></tr>
-<tr><td><span class='pill'>R8KD3F</span></td><td>Abusive message</td><td>4</td><td>3</td><td>22,838</td><td>864</td><td>end_turn</td></tr>
+<tr><td><span class='pill'>K7PQ2M</span></td><td>Clean cancellation</td><td>4</td><td>4</td><td>3,942</td><td>898</td><td>end_turn</td></tr>
+<tr><td><span class='pill'>M3XR8T</span></td><td>Delay under threshold</td><td>4</td><td>3</td><td>2,739</td><td>678</td><td>end_turn</td></tr>
+<tr><td><span class='pill'>T9WN4C</span></td><td>Ambiguous missed connection</td><td>4</td><td>4</td><td>2,949</td><td>1,005</td><td>end_turn</td></tr>
+<tr><td><span class='pill'>G2HL9V</span></td><td>Out-of-scope group</td><td>4</td><td>3</td><td>2,837</td><td>866</td><td>end_turn</td></tr>
+<tr><td><span class='pill'>R8KD3F</span></td><td>Abusive message</td><td>4</td><td>3</td><td>2,734</td><td>698</td><td>end_turn</td></tr>
 </table>
 <h2>The loop: one conversation, turn by turn</h2>
-<p class='sub'>Trace shown: one conversation, the last one you ran · trace: .workshop\last_trace.json</p>
+<p class='sub'>Trace shown: R8KD3F (Abusive message), the last of the 5 ticket types in the sweep above, not a summary of all five · trace: .workshop\last_trace.json</p>
 <div class='strip'>
 <div class='stat'><b>4</b><span>API turns</span></div>
-<div class='stat'><b>4</b><span>tool calls</span></div>
-<div class='stat'><b>3,938</b><span>tokens in</span></div>
-<div class='stat'><b>921</b><span>tokens out</span></div>
-<div class='stat'><b>13.3s</b><span>wall clock</span></div>
+<div class='stat'><b>3</b><span>tool calls</span></div>
+<div class='stat'><b>2,734</b><span>tokens in</span></div>
+<div class='stat'><b>698</b><span>tokens out</span></div>
+<div class='stat'><b>8.7s</b><span>wall clock</span></div>
 </div>
 <div class='turn'>
 <div class='hd'>Turn 1 → messages.create()</div>
 <div class='meta'>sent: 1 msg in context · 17 tools offered</div>
-<div class='meta'>← stop_reason=<b>tool_use</b> · blocks: tool_use · in 116 / out 85 · 1.5s</div>
-<div class='tool'>⚙ lookup_booking({&quot;pnr&quot;: &quot;K7PQ2M&quot;, &quot;last_name&quot;: &quot;Marchetti&quot;})</div>
+<div class='meta'>← stop_reason=<b>tool_use</b> · blocks: tool_use · in 115 / out 83 · 1.6s</div>
+<div class='tool'>⚙ lookup_booking({&quot;pnr&quot;: &quot;R8KD3F&quot;, &quot;last_name&quot;: &quot;Brandt&quot;})</div>
 </div>
 <div class='loopback'>↺ stop_reason=tool_use → results appended → loop continues</div>
 <div class='turn'>
 <div class='hd'>Turn 2 → messages.create()</div>
 <div class='meta'>sent: 3 msg in context · 17 tools offered</div>
-<div class='meta'>← stop_reason=<b>tool_use</b> · blocks: tool_use · in 438 / out 81 · 1.3s</div>
-<div class='tool'>⚙ get_flight_status({&quot;flight_no&quot;: &quot;LK415&quot;, &quot;date&quot;: &quot;2025-05-08&quot;})</div>
+<div class='meta'>← stop_reason=<b>tool_use</b> · blocks: tool_use · in 429 / out 81 · 1.4s</div>
+<div class='tool'>⚙ get_flight_status({&quot;flight_no&quot;: &quot;LK255&quot;, &quot;date&quot;: &quot;2025-05-08&quot;})</div>
 </div>
 <div class='loopback'>↺ stop_reason=tool_use → results appended → loop continues</div>
 <div class='turn'>
 <div class='hd'>Turn 3 → messages.create()</div>
 <div class='meta'>sent: 5 msg in context · 17 tools offered</div>
-<div class='meta'>← stop_reason=<b>tool_use</b> · blocks: tool_use, tool_use · in 756 / out 188 · 1.8s</div>
-<div class='tool'>⚙ check_policy({&quot;pnr&quot;: &quot;K7PQ2M&quot;, &quot;cause_code&quot;: &quot;WX&quot;, &quot;delay_minutes&quot;: 0, &quot;status&quot;: &quot;CANCELLED&quot;})</div>
-<div class='tool'>⚙ search_alternatives({&quot;pnr&quot;: &quot;K7PQ2M&quot;})</div>
+<div class='meta'>← stop_reason=<b>tool_use</b> · blocks: tool_use · in 753 / out 131 · 1.6s</div>
+<div class='tool'>⚙ check_policy({&quot;pnr&quot;: &quot;R8KD3F&quot;, &quot;cause_code&quot;: &quot;WX&quot;, &quot;delay_minutes&quot;: 190, &quot;status&quot;: &quot;DELAYED&quot;})</div>
 </div>
 <div class='loopback'>↺ stop_reason=tool_use → results appended → loop continues</div>
 <div class='turn done'>
 <div class='hd'>Turn 4 → messages.create()</div>
 <div class='meta'>sent: 7 msg in context · 17 tools offered</div>
-<div class='meta'>← stop_reason=<b class='stopped'>end_turn</b> · blocks: text · in 2,628 / out 567 · 4.7s</div>
+<div class='meta'>← stop_reason=<b class='stopped'>end_turn</b> · blocks: text · in 1,437 / out 403 · 3.7s</div>
 </div>
 <p class='foot'>Generated by readout.py · Larkspur Airlines is a fictional training scenario · Confidential / do not distribute</p></div>
-<script type="application/json" id="evidence">{"generated": "2026-11-19T06:28:46", "pod": "Room 2", "banked_by": "Dinesh Kumar", "banked": {"1.2": "1DE-F24", "1.3": "C72-4F7", "1.4": "7A4-119", "2.1": "E10-E36", "2.2": "8A6-69A", "3.1": "1D1-9F8"}, "trace": {"turns": 4, "tool_calls": 4, "tool_names": ["lookup_booking", "get_flight_status", "check_policy", "search_alternatives"], "saw_thinking": false, "used_format": false, "used_tool_choice_none": false, "streamed": false, "deltas_seen": 0, "tokens": {"input": 3938, "output": 921, "cache_read": 15513, "cache_write": 5171}, "cache_hit_ratio": 0.6300463000568597, "elapsed": 13.3}, "all_shapes": {"attempted": 5, "shapes": 5, "failed": 0, "resolved": 5, "turns": 20, "tool_calls": 17, "tokens_in": 115711, "tokens_out": 4362, "cache_read": 0, "unfinished": [], "errors": []}}</script>
+<script type="application/json" id="evidence">{"generated": "2026-11-19T07:13:53", "pod": "Room 2", "banked_by": "Dinesh Kumar", "banked": {"1.2": "1DE-F24", "1.3": "C72-4F7", "1.4": "7A4-119", "2.1": "E10-E36", "2.2": "8A6-69A", "3.1": "1D1-9F8", "4.1": "887-3C2"}, "trace": {"turns": 4, "tool_calls": 3, "tool_names": ["lookup_booking", "get_flight_status", "check_policy"], "saw_thinking": false, "used_format": false, "used_tool_choice_none": false, "streamed": false, "deltas_seen": 0, "tokens": {"input": 2734, "output": 698, "cache_read": 15990, "cache_write": 5330}, "cache_hit_ratio": 0.664754302818658, "elapsed": 8.7}, "all_shapes": {"attempted": 5, "shapes": 5, "failed": 0, "resolved": 5, "turns": 20, "tool_calls": 17, "tokens_in": 15201, "tokens_out": 4145, "cache_read": 79950, "unfinished": [], "errors": []}}</script>

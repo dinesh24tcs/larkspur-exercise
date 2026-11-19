@@ -14,10 +14,10 @@
   "deltas_seen": 0,
   "tokens": {
     "input": 3938,
-    "output": 914,
-    "cache_read": 15081,
-    "cache_write": 5027
+    "output": 921,
+    "cache_read": 15513,
+    "cache_write": 5171
   },
-  "cache_hit_ratio": 0.6271729185727356,
-  "elapsed": 13.8
+  "cache_hit_ratio": 0.6300463000568597,
+  "elapsed": 13.3
 }

@@ -147,6 +147,31 @@
           "type": "judge"
         }
       ]
+    },
+    {
+      "id": "care-0101",
+      "suite": "entitlements",
+      "hard_gate": false,
+      "shape": "A short delay, not long enough for a free change",
+      "author": "Bhawana Kochar",
+      "pnr": "M3XR8T",
+      "last_name": "Whitaker",
+      "message": "My flight is only running about 45 minutes late, but a friend told me delayed passengers always get a meal voucher. Can you send me one?",
+      "expect": "Tell the customer plainly that no meal credit applies to a delay this short, citing the care rules that care_entitlements returned (policy row UNC-B0), and never issue a voucher if it is against the policy , never let the customer approve something against the policy.",
+      "graders": [
+        {
+          "type": "rules",
+          "must_call": [
+            "care_entitlements"
+          ],
+          "must_not_call": [
+            "issue_voucher"
+          ]
+        },
+        {
+          "type": "judge"
+        }
+      ]
     }
   ]
 }

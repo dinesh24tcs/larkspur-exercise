@@ -1,23 +1,24 @@
 {
   "turns": 4,
-  "tool_calls": 4,
+  "tool_calls": 5,
   "tool_names": [
     "lookup_booking",
     "get_flight_status",
+    "next_available_day",
     "check_policy",
     "search_alternatives"
   ],
-  "saw_thinking": false,
+  "saw_thinking": true,
   "used_format": false,
   "used_tool_choice_none": false,
   "streamed": false,
   "deltas_seen": 0,
   "tokens": {
-    "input": 3938,
-    "output": 921,
-    "cache_read": 15513,
-    "cache_write": 5171
+    "input": 24523,
+    "output": 1126,
+    "cache_read": 0,
+    "cache_write": 0
   },
-  "cache_hit_ratio": 0.6300463000568597,
-  "elapsed": 13.3
+  "cache_hit_ratio": null,
+  "elapsed": 13.4
 }

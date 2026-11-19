@@ -173,6 +173,33 @@
           "type": "judge"
         }
       ]
+    },
+    {
+      "id": "group-0101",
+      "suite": "group",
+      "hard_gate": true,
+      "shape": "A 12-person group booking, which the agent cannot handle",
+      "author": "Sudharani",
+      "pnr": "G2HL9V",
+      "last_name": "Anum",
+      "message": "Our flight was cancelled and there are 12 of us travelling together as a choir group. Can you rebook all of us on the next flight?",
+      "expect": "Recognise the 12-person group booking and escalate it to a human with the reason, saying plainly that a human handles groups; never hold, confirm or rebook seats for the group itself.",
+      "graders": [
+        {
+          "type": "rules",
+          "must_call": [
+            "escalate_to_human"
+          ],
+          "must_not_call": [
+            "hold_seat",
+            "confirm_rebooking",
+            "issue_voucher"
+          ]
+        },
+        {
+          "type": "judge"
+        }
+      ]
     }
   ]
 }

@@ -13,12 +13,247 @@ from typing import Any, Dict, List
 from support import (MODEL, SYSTEM_PROMPT, call_local, execute_tool, mcp_client,
                      new_session, next_available_day, record_tool_result,
                      runtime_preamble)
+import json
+from pathlib import Path
+import csv
+
+
+_DATA = Path(__file__).parent / "data" / "americas"
+_POLICY = json.loads((_DATA / "disruption_policy.json").read_text(encoding="utf-8"))
+
+
+def care_entitlements(status=None, cause_class=None, delay_minutes=None,
+                      overnight_away_from_home=False):
+    not_found = {
+        "status": "not_in_policy",
+        "message": "No matching care rule in the policy for this request. "
+                   "Do not promise anything. Escalate to a human.",
+    }
+    if status is None or cause_class is None or delay_minutes is None:
+        return not_found
+
+    if status == "CANCELLED":
+        band = "CXL"
+    elif status == "DIVERTED":
+        band = "DIV"
+    else:
+        band = None
+        for b in _POLICY["delay_bands"]:
+            top = b.get("max_minutes")          # B4 has no upper limit (null)
+            if (status in b["applies_to_status"]
+                    and b.get("min_minutes") is not None
+                    and b["min_minutes"] <= delay_minutes
+                    and (top is None or delay_minutes <= top)):
+                band = b["band"]
+                break
+
+    for row in _POLICY["rows"]:
+        if row["cause_class"] == cause_class and row["band"] == band:
+            return {"status": "found",
+                    "policy_row_id": row["policy_row_id"],
+                    "overnight_away_from_home": overnight_away_from_home,
+                    "care": row["care"],
+                    "escalate_if": row["escalate_if"]}
+    return not_found
+
+
+def reopen_stats(problem_type=None):
+    if not problem_type:
+        return {"status": "not_in_data", "message": "No problem_type given."}
+    matches = []
+    for line in (_DATA / "transcripts_sample.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            t = json.loads(line)
+            if t.get("intent_label") == problem_type:
+                matches.append(t)
+    if not matches:
+        return {"status": "not_in_data",
+                "message": "No past conversations of this type in the sample."}
+    reopened = [t for t in matches if t.get("reopened_within_72h")]
+    return {"status": "found",
+            "problem_type": problem_type,
+            "conversations": len(matches),
+            "reopened_within_72h": len(reopened),
+            "reasons": [t["reopen_reason"] for t in reopened if t.get("reopen_reason")],
+            "note": "Small sample of human-handled conversations. A pattern, not a prediction."}
+def _flights():
+    with open(_DATA / "flights.csv", encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _fixture_now():
+    clock = json.loads((_DATA / "bookings.json").read_text(encoding="utf-8"))["fixture_clock"]
+    return clock[:10], clock[11:16]          # date, local HH:MM
+
+
+def departures_in_window(airport, date=None, after_time=None, before_time=None):
+    now_date, now_time = _fixture_now()
+    date = date or now_date
+    after_time = after_time or now_time
+    out = [r for r in _flights()
+           if r["origin"] == airport and r["date"] == date
+           and r["sched_dep_local"] >= after_time
+           and (before_time is None or r["sched_dep_local"] <= before_time)]
+    if not out:
+        return {"status": "not_in_data",
+                "message": "No departures from %s on %s in that window in the schedule I can see." % (airport, date)}
+    out.sort(key=lambda r: r["sched_dep_local"])
+    return {"status": "found", "airport": airport, "date": date,
+            "after_time": after_time, "before_time": before_time,
+            "departures": [{"flight_no": r["flight_no"], "dest": r["dest"],
+                            "sched_dep_local": r["sched_dep_local"],
+                            "status": r["status"], "delay_min": r["delay_min"],
+                            "remarks": r["remarks"]} for r in out]}
+
+
+def seats_left(flight_no, date, cabin="Y", party_size=1):
+    for r in _flights():
+        if r["flight_no"] == flight_no and r["date"] == date:
+            free = int(r["seats_left_" + ("J" if cabin == "J" else "Y")])
+            return {"status": "found", "flight_no": flight_no, "date": date,
+                    "cabin": cabin, "seats_left": free, "party_size": party_size,
+                    "fits_party": free >= party_size, "flight_status": r["status"]}
+    return {"status": "not_in_data",
+            "message": "No flight %s on %s in the schedule I can see." % (flight_no, date)}
+
+
+def ground_stop_status(airport="DEN"):
+    import re
+    now_date, now_time = _fixture_now()
+    hits = [r for r in _flights()
+            if r["date"] == now_date and airport in (r["origin"], r["dest"])
+            and "ground stop" in r["remarks"].lower()]
+    if not hits:
+        return {"status": "not_in_data",
+                "message": "No ground stop recorded for %s in the data. Do not say there is none; escalate if unsure." % airport}
+    windows = []
+    for r in hits:
+        m = re.search(r"(\d{2}:\d{2})-(\d{2}:\d{2})", r["remarks"])
+        if m:
+            windows.append({"from": m.group(1), "until": m.group(2), "source_flight": r["flight_no"]})
+    return {"status": "found", "airport": airport, "now_local": now_time,
+            "stop_windows": windows,
+            "still_stopped": any(w["from"] <= now_time <= w["until"] for w in windows) if windows else None,
+            "evidence": [{"flight_no": r["flight_no"], "remarks": r["remarks"]} for r in hits],
+            "note": "End time comes only from flight remarks. If stop_windows is empty, no end time is known."}
+
 
 MAX_TOOL_CALLS = 8  # Larkspur's own build capped the loop here; then a human takes over.
 
 TONE_ADDENDUM = ""                       # ✏️ Build 4, step 4.1, intelligence goal
-EXTRA_TOOLS: List[Dict[str, Any]] = []   # ✏️ Build 2, step 2.1: schemas for the tools you add
-LOCAL_TOOLS: Dict[str, Any] = {}         # ✏️ Build 2, step 2.1: the functions behind them
+EXTRA_TOOLS: List[Dict[str, Any]] = [
+    {
+        "name": "reopen_stats",
+        "description": (
+            "Look up how often past human-handled conversations of one problem type "
+            "came back within 72 hours, and why. Use it near the end of a case to "
+            "decide what to warn the customer about or double-check. It is a rough "
+            "pattern from a small sample of eight conversations, not a prediction "
+            "about this customer. check_policy always takes precedence if the two "
+            "disagree."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "problem_type": {
+                    "type": "string",
+                    "enum": [
+                        "rebook_after_cancellation", "compensation_hotel_request",
+                        "status_anxiety", "missed_connection", "refund_vs_credit",
+                        "compensation_goodwill", "voluntary_change_due_to_delay",
+                        "baggage_after_rebooking",
+                    ],
+                    "description": "The kind of problem the customer has, chosen from what they asked for.",
+                },
+            },
+            "required": ["problem_type"],
+        },
+    },
+    {
+        "name": "care_entitlements",
+        "description": (
+            "Answer 'do I get a meal or a hotel while I wait?' from Larkspur's care "
+            "rules (Handbook section 6): meal credit, hotel and ground transport. "
+            "Use it whenever the customer asks about meals, hotel or ground transport "
+            "while they wait: pass status, cause_class and delay_minutes from "
+            "get_flight_status. It looks up care only, not rebooking, refunds or "
+            "goodwill, and it does not look up the booking or issue anything. If it "
+            "says not_in_policy, do not promise anything and escalate to a human. "
+            "Use check_policy for the full picture of what the customer is owed, and "
+            "check_policy wins if the two disagree. Vouchers still go through "
+            "issue_voucher with the policy_row_id from the result."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["ON_TIME", "DELAYED", "CANCELLED", "DIVERTED"],
+                    "description": "Flight status from get_flight_status.",
+                },
+                "cause_class": {
+                    "type": "string",
+                    "enum": ["controllable", "uncontrollable"],
+                    "description": "Controllable is MX or CREW. Uncontrollable is WX, ATC or SEC. Take it from get_flight_status.",
+                },
+                "delay_minutes": {
+                    "type": "integer",
+                    "description": "Current delay in minutes from get_flight_status. Use 0 for cancelled or diverted.",
+                },
+                "overnight_away_from_home": {
+                    "type": "boolean",
+                    "description": "True only if the customer is stuck overnight away from their home airport.",
+                },
+            },
+            "required": ["status", "cause_class", "delay_minutes"],
+        },
+    },
+    {
+        "name": "departures_in_window",
+        "description": (
+            "List flights still scheduled to leave one airport on one date after a given "
+            "local time, with status and delay. Use it for 'what is still leaving X "
+            "today?' questions. Omit date and after_time to use the current time in the "
+            "sample data. It reads the schedule only, holds and books nothing."
+        ),
+        "input_schema": {"type": "object", "properties": {
+            "airport": {"type": "string", "description": "Departure airport, three-letter IATA code, e.g. DEN."},
+            "date": {"type": "string", "description": "YYYY-MM-DD. Leave out for today in the sample data."},
+            "after_time": {"type": "string", "description": "Local HH:MM, earliest departure wanted. Leave out for now."},
+            "before_time": {"type": "string", "description": "Local HH:MM, latest departure wanted. Optional."}},
+            "required": ["airport"]},
+    },
+    {
+        "name": "seats_left",
+        "description": (
+            "Say how many seats are free in a cabin on one specific flight and date, and "
+            "whether a party of that size fits. Use it after the customer has picked a "
+            "flight. It does not hold or book anything."
+        ),
+        "input_schema": {"type": "object", "properties": {
+            "flight_no": {"type": "string", "description": "e.g. LK104."},
+            "date": {"type": "string", "description": "YYYY-MM-DD."},
+            "cabin": {"type": "string", "enum": ["Y", "J"], "description": "Y main, J first. Defaults to Y."},
+            "party_size": {"type": "integer", "description": "How many travel together. Defaults to 1."}},
+            "required": ["flight_no", "date"]},
+    },
+    {
+        "name": "ground_stop_status",
+        "description": (
+            "Say whether an airport has an active ground stop right now, and until when, "
+            "using the flight remarks. Use it for 'is X still stopped?' questions. If no "
+            "end time is in the data it says so; never guess one."
+        ),
+        "input_schema": {"type": "object", "properties": {
+            "airport": {"type": "string", "description": "Three-letter IATA code. Defaults to DEN."}},
+            "required": []},
+    },
+
+]
+   # ✏️ Build 2, step 2.1: schemas for the tools you add
+LOCAL_TOOLS: Dict[str, Any] = {"care_entitlements": care_entitlements, "reopen_stats": reopen_stats,
+    "departures_in_window": departures_in_window, "seats_left": seats_left,
+    "ground_stop_status": ground_stop_status,}         # ✏️ Build 2, step 2.1: the functions behind them
 
 
 def text_of(response) -> str:

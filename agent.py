@@ -16,9 +16,10 @@ from support import (MODEL, SYSTEM_PROMPT, call_local, execute_tool, mcp_client,
 import json
 from pathlib import Path
 import csv
+from support import mock_backend as backend
 
 
-_DATA = Path(__file__).parent / "data" / "americas"
+_DATA =Path(__file__).parent / "data" / "americas"
 _POLICY = json.loads((_DATA / "disruption_policy.json").read_text(encoding="utf-8"))
 
 
@@ -138,6 +139,44 @@ def ground_stop_status(airport="DEN"):
             "note": "End time comes only from flight remarks. If stop_windows is empty, no end time is known."}
 
 
+def cause_in_plain_wordsfun(pnr: str) -> Dict[str, Any]:
+    """Why was this booking's flight disrupted, in the customer-facing words from
+    data/americas/disruption_policy.json.
+
+    The policy file is keyed by cause code, not by PNR, so the PNR is resolved first:
+    booking -> disrupted flight and date -> cause_code (flights.csv) -> policy labels.
+    If the PNR is also one of the policy file's own worked examples (fixture_pnr),
+    that example is returned too."""
+    try:
+        booking = backend.get_booking_raw(pnr)
+    except backend.NotFound as exc:
+        return {"error": str(exc)}
+    seg = backend.get_disrupted_segment(booking)
+    if not seg:
+        return {"pnr": pnr, "note": "This booking has no disrupted segment, so there is no cause to explain."}
+
+    flight_no, date = seg["flight_no"], seg["date"]
+    row = next((r for r in backend.load_flights()
+                if r["flight_no"] == flight_no and r["date"] == date), None)
+    cause = (row or {}).get("cause_code", "")
+    if not cause:
+        return {"pnr": pnr, "flight_no": flight_no, "date": date,
+                "note": "No cause code is on record for this flight and date, so there is nothing to explain."}
+
+    labels = _POLICY["cause_labels_customer"].get(cause, {})
+    lang = booking.get("language", "en")
+    example = next((e for e in _POLICY["examples"] if e.get("fixture_pnr") == pnr), None)
+    return {
+        "pnr": pnr, "flight_no": flight_no, "date": date,
+        "status": row.get("status"), "remarks": row.get("remarks"),
+        "cause_code": cause,
+        "cause_class": _POLICY["cause_classes"].get(cause),
+        "cause_in_plain_words": labels.get(lang) or labels.get("en"),
+        "wording_rule": _POLICY["customer_wording"]["cause_attribution"],
+        "policy_example_for_this_pnr": example,
+    }
+
+
 MAX_TOOL_CALLS = 8  # Larkspur's own build capped the loop here; then a human takes over.
 
 TONE_ADDENDUM = ""                       # ✏️ Build 4, step 4.1, intelligence goal
@@ -248,12 +287,26 @@ EXTRA_TOOLS: List[Dict[str, Any]] = [
             "airport": {"type": "string", "description": "Three-letter IATA code. Defaults to DEN."}},
             "required": []},
     },
+    {
+        "name": "cause_in_plain_words",
+        "description": (
+            "Use this tool exclusively when a customer asks why their flight was cancelled or disturbed "
+            "and wants the reason explained in simple user friendly words. "
+            "The tool looks up the cause in the disruption_policy.json and returns the cause details."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"pnr": {"type": "string"}},
+            "required": ["pnr"],
+        },
+    },
 
 ]
    # ✏️ Build 2, step 2.1: schemas for the tools you add
 LOCAL_TOOLS: Dict[str, Any] = {"care_entitlements": care_entitlements, "reopen_stats": reopen_stats,
     "departures_in_window": departures_in_window, "seats_left": seats_left,
-    "ground_stop_status": ground_stop_status,}         # ✏️ Build 2, step 2.1: the functions behind them
+    "ground_stop_status": ground_stop_status,
+    "cause_in_plain_words": cause_in_plain_wordsfun,}         # ✏️ Build 2, step 2.1: the functions behind them
 
 
 def text_of(response) -> str:
